@@ -1,12 +1,14 @@
 #!/bin/bash
 
-make -C contiki/examples/ipv6/rpl-udp-multi
+CONTIKI=../contiki/examples/ipv6/rpl-udp-multi/
+
+make -C $CONTIKI
 
 CLIENTS=180-182
 SERVERS=179
 DURATION=60
 
-CONTIKI=contiki/examples/ipv6/rpl-udp-multi/
+
 
 iotlab-profile addm3 -n consumption -p dc -current -voltage -power -period 8244 -avg 4
 
