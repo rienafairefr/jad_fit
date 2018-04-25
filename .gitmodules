@@ -1,0 +1,6 @@
+[submodule "contiki"]
+	path = contiki
+	url = https://github.com/iot-lab/contiki.git
+[submodule "openlab"]
+	path = openlab
+	url = git@github.com:iot-lab/openlab.git
