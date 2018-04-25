@@ -4,11 +4,9 @@ CONTIKI=../contiki/examples/ipv6/rpl-udp-multi/
 
 make -C $CONTIKI
 
-CLIENTS=180-182
-SERVERS=179
+CLIENTS=175-179
+SERVERS=180
 DURATION=60
-
-
 
 iotlab-profile addm3 -n consumption -p dc -current -voltage -power -period 8244 -avg 4
 
