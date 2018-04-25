@@ -6,6 +6,7 @@ import sys
 import threading
 
 from iotlabaggregator import common, connections
+from iotlabaggregator.serial import SerialAggregator as AggregatorSerialAggregator
 from iotlabaggregator.serial import SerialConnection as AggregatorSerialConnection
 from iotlabcli.parser import common as common_parser
 
@@ -75,7 +76,8 @@ class SerialConnection(AggregatorSerialConnection):
 
     def line_handler(self, identifier, line):
         # handle incoming messages
-        pass
+        if line.contains('consumption ACK'):
+            self.consumption_msg_hack = True
 
 
 class SerialAggregator(connections.Aggregator):
@@ -124,7 +126,9 @@ class SerialAggregator(connections.Aggregator):
             for node, connection in self.items():
                 if hasattr(connection, 'consumption_msg_ack') and \
                         connection.consumption_msg_ack:
+                    connection.consumption_msg_hack = False
                     self.send_nodes([node], self.consumption.accumulated_watt_s[node])
+
 
     @staticmethod
     def extract_nodes_and_message(line):
@@ -175,6 +179,7 @@ def main(args=None):
     except (ValueError, RuntimeError) as err:
         sys.stderr.write("%s\n" % err)
         exit(1)
+
 
 if __name__ == '__main__':
     main()
