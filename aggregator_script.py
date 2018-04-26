@@ -125,7 +125,7 @@ class SerialAggregator(connections.Aggregator):
             self.consumption.start()
             self.read_input()
         except (KeyboardInterrupt, EOFError):
-            pass
+            exit(0)
 
     def read_input(self):
         """ Read input and sends the messages to the given nodes """
