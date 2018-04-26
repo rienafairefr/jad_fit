@@ -15,21 +15,34 @@ from iotlabcli.node import node_command
 from iotlabcli.parser import common as common_parser
 from iotlabcli.helpers import get_current_experiment
 
-
-LOG_FMT = logging.Formatter("%(created)f;%(message)s")
-line_logger = logging.StreamHandler(sys.stdout)
-line_logger.setFormatter(LOG_FMT)
-
+print('current working directory: ' + os.getcwd())
 
 user, passwd = auth.get_user_credentials()
 api = rest.Api(user, passwd)
 experiment_id = get_current_experiment(api, running_only=False)
+
+home = os.path.expanduser('~')
+
+"""
+LOG_FMT = logging.Formatter("%(created)f;%(message)s")
+logger = logging.getLogger('aggregator_script')
+logger.setLevel(logging.DEBUG)
+line_logger = logging.StreamHandler(sys.stdout)
+line_logger.setFormatter(LOG_FMT)
+file_logger = logging.FileHandler(os.path.join(home, '%i.aggregator.log' % experiment_id))
+file_logger.setFormatter(LOG_FMT)
+logger.addHandler(line_logger)
+logger.addHandler(file_logger)
+"""
+
 print('Wait experiment %i'%experiment_id)
 wait_experiment(api, experiment_id)
 
 
+
+
 class ConsumptionAggregator(object):
-    CONSUMPTION_DIR = ".iot-lab/{experiment_id}/consumption/{node}.oml"
+    CONSUMPTION_DIR = os.path.join(home, ".iot-lab/{experiment_id}/consumption/{node}.oml")
 
     def __init__(self, nodes_list, *args, **kwargs):
         self.nodes_list = nodes_list
@@ -60,6 +73,7 @@ class ConsumptionAggregator(object):
         # schema: 1 control_node_measures_consumption timestamp_s:uint32 timestamp_us:uint32 power:double voltage:double current:double
 
         for node, file in self.open_files.items():
+            print('Reading consumption file for %s...' % node)
             lines = file.readlines()
             for line in lines:
                 splitted = line.split('\t')
@@ -93,6 +107,7 @@ class SerialConnection(AggregatorSerialConnection):
             # stop the node
             node_command(api, 'stop', experiment_id, nodes_list=[identifier])
             print('>> STOPPED node %s' %identifier)
+        print(line)
 
 
 
