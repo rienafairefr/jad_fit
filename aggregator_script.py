@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import argparse
 import logging
 import os
@@ -23,22 +24,23 @@ experiment_id = get_current_experiment(api, running_only=False)
 
 home = os.path.expanduser('~')
 
-"""
 LOG_FMT = logging.Formatter("%(created)f;%(message)s")
 logger = logging.getLogger('aggregator_script')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 line_logger = logging.StreamHandler(sys.stdout)
 line_logger.setFormatter(LOG_FMT)
 file_logger = logging.FileHandler(os.path.join(home, '%i.aggregator.log' % experiment_id))
 file_logger.setFormatter(LOG_FMT)
 logger.addHandler(line_logger)
 logger.addHandler(file_logger)
-"""
 
 print('Wait experiment %i'%experiment_id)
 wait_experiment(api, experiment_id)
 
+_print = print
 
+def print(msg):
+    logger.info(msg)
 
 
 class ConsumptionAggregator(object):
@@ -73,8 +75,11 @@ class ConsumptionAggregator(object):
         # schema: 1 control_node_measures_consumption timestamp_s:uint32 timestamp_us:uint32 power:double voltage:double current:double
 
         for node, file in self.open_files.items():
-            print('Reading consumption file for %s...' % node)
             lines = file.readlines()
+            if lines:
+                print('Reading consumption data for %s...' % node)
+            else:
+                print('no new consumption data for %s...' % node)
             for line in lines:
                 splitted = line.split('\t')
                 if len(splitted) == 8:
@@ -158,9 +163,9 @@ class SerialAggregator(connections.Aggregator):
                 if connection.consumption_msg_ack:
                     cons = self.consumption.accumulated_watt_s.get(node)
                     if cons:
-                        msg = 'cons %.2f\n' % cons
+                        msg = 'cons %.2f' % cons
                         connection.consumption_msg_ack = False
-                        self.send_nodes([node], msg)
+                        self.send_nodes([node], msg + '\n')
                         print('<< SENT consumption %s %s' % (node, msg))
             time.sleep(10)
 
