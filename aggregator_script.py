@@ -53,7 +53,7 @@ class ConsumptionAggregator(object):
             while True:
                 self.read_consumption_file()
         except (KeyboardInterrupt, EOFError):
-            pass
+            exit(0)
 
     def read_consumption_file(self):
         # schema: 0 _experiment_metadata subject:string key:string value:string
