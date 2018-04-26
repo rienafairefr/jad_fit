@@ -4,11 +4,16 @@ import logging
 import os
 import sys
 import threading
+import time
 
 from iotlabaggregator import common, connections
 from iotlabaggregator.serial import SerialAggregator as AggregatorSerialAggregator
 from iotlabaggregator.serial import SerialConnection as AggregatorSerialConnection
+from iotlabcli import auth, rest, experiment
+from iotlabcli.experiment import wait_experiment
+from iotlabcli.node import node_command
 from iotlabcli.parser import common as common_parser
+from iotlabcli.helpers import get_current_experiment
 
 
 LOG_FMT = logging.Formatter("%(created)f;%(message)s")
@@ -16,16 +21,17 @@ line_logger = logging.StreamHandler(sys.stdout)
 line_logger.setFormatter(LOG_FMT)
 
 
-class ConsumptionAggregator():
+user, passwd = auth.get_user_credentials()
+api = rest.Api(user, passwd)
+experiment_id = get_current_experiment(api, running_only=False)
+wait_experiment(api, experiment_id)
 
+
+class ConsumptionAggregator(object):
     CONSUMPTION_DIR = ".iot-lab/{experiment_id}/consumption/{node}.oml"
 
     def __init__(self, nodes_list, *args, **kwargs):
         self.nodes_list = nodes_list
-        experiment_id = os.environ.get('EXP_ID')
-        if not experiment_id:
-            experiment_id = 'last'
-
         self.open_files = {}
         self.accumulated_watt_s = {}
         self.times = {}
@@ -66,6 +72,8 @@ class ConsumptionAggregator():
             if lines:
                 if self.times.get(node) and self.accumulated_watt_s.get(node):
                     print('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
+
+        time.sleep(5)
         pass
 
 
@@ -77,7 +85,11 @@ class SerialConnection(AggregatorSerialConnection):
     def line_handler(self, identifier, line):
         # handle incoming messages
         if line.contains('consumption ACK'):
+            # acknowledge the received consumption
             self.consumption_msg_hack = True
+        if line.contains('STOP node'):
+            # stop the node
+            node_command(api, 'stop', experiment_id, nodes_list=[identifier])
 
 
 class SerialAggregator(connections.Aggregator):
