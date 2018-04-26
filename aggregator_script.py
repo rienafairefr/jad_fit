@@ -143,10 +143,11 @@ class SerialAggregator(connections.Aggregator):
                 if connection.consumption_msg_ack:
                     cons = self.consumption.accumulated_watt_s.get(node)
                     if cons:
-                        msg = 'cons %.2f' % cons
+                        msg = 'cons %.2f\n' % cons
                         connection.consumption_msg_ack = False
                         self.send_nodes([node], msg)
                         print('<< SENT consumption %s %s' % (node, msg))
+            time.sleep(10)
 
 
     @staticmethod
