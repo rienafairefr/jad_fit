@@ -30,7 +30,7 @@ class ConsumptionAggregator():
         self.accumulated_watt_s = {}
         self.times = {}
         for node in nodes_list:
-            consumption_node_file = self.CONSUMPTION_DIR.format(node=node,experiment_id=experiment_id)
+            consumption_node_file = self.CONSUMPTION_DIR.format(node=node, experiment_id=experiment_id)
             if os.path.exists(consumption_node_file):
                 self.open_files[node] = open(consumption_node_file, 'r')
                 self.accumulated_watt_s[node] = 0
@@ -57,7 +57,7 @@ class ConsumptionAggregator():
             for line in lines:
                 splitted = line.split('\t')
                 if len(splitted) == 8:
-                    current_time = float(splitted[3]) + float(splitted[4])/1000
+                    current_time = float(splitted[3]) + float(splitted[4]) / 1000
                     dt = current_time - self.times.get(node, current_time)
                     power = float(splitted[5])
                     self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
@@ -120,7 +120,7 @@ class SerialAggregator(connections.Aggregator):
 
             # nodes, message = self.extract_nodes_and_message(line)
 
-            #if (None, '') != (nodes, message):
+            # if (None, '') != (nodes, message):
             #    self.send_nodes(nodes, message + '\n')
             # else: Only hitting 'enter' to get spacing
             for node, connection in self.items():
@@ -128,7 +128,6 @@ class SerialAggregator(connections.Aggregator):
                         connection.consumption_msg_ack:
                     connection.consumption_msg_hack = False
                     self.send_nodes([node], self.consumption.accumulated_watt_s[node])
-
 
     @staticmethod
     def extract_nodes_and_message(line):
