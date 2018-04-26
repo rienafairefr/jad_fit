@@ -24,6 +24,7 @@ line_logger.setFormatter(LOG_FMT)
 user, passwd = auth.get_user_credentials()
 api = rest.Api(user, passwd)
 experiment_id = get_current_experiment(api, running_only=False)
+print('Wait experiment %i'%experiment_id)
 wait_experiment(api, experiment_id)
 
 
@@ -79,17 +80,20 @@ class ConsumptionAggregator(object):
 
 class SerialConnection(AggregatorSerialConnection):
     def __init__(self, hostname, aggregator):
-        self.consumption_msg_hack = True
-        super(SerialConnection, self).__init__(hostname, aggregator, line_handler=self.line_handler)
+        self.consumption_msg_ack = True
+        super(SerialConnection, self).__init__(hostname, aggregator, line_handler=self.line_handler, print_lines=True)
 
     def line_handler(self, identifier, line):
         # handle incoming messages
-        if line.contains('consumption ACK'):
+        if 'cons ACK' in line:
             # acknowledge the received consumption
-            self.consumption_msg_hack = True
-        if line.contains('STOP node'):
+            self.consumption_msg_ack = True
+            print('>> ACK cons %s' % identifier)
+        elif 'stop self' in line:
             # stop the node
             node_command(api, 'stop', experiment_id, nodes_list=[identifier])
+            print('>> STOPPED node %s' %identifier)
+
 
 
 class SerialAggregator(connections.Aggregator):
@@ -136,10 +140,14 @@ class SerialAggregator(connections.Aggregator):
             #    self.send_nodes(nodes, message + '\n')
             # else: Only hitting 'enter' to get spacing
             for node, connection in self.items():
-                if hasattr(connection, 'consumption_msg_ack') and \
-                        connection.consumption_msg_ack:
-                    connection.consumption_msg_hack = False
-                    self.send_nodes([node], self.consumption.accumulated_watt_s[node])
+                if connection.consumption_msg_ack:
+                    cons = self.consumption.accumulated_watt_s[node]
+                    if cons > 0:
+                        msg = 'cons %.2f' % cons
+                        connection.consumption_msg_ack = False
+                        self.send_nodes([node], msg)
+                        print('<< SENT consumption %s %s' % (node, msg))
+
 
     @staticmethod
     def extract_nodes_and_message(line):
