@@ -141,10 +141,8 @@ class SerialAggregator(connections.Aggregator):
             # else: Only hitting 'enter' to get spacing
             for node, connection in self.items():
                 if connection.consumption_msg_ack:
-                    print('OK consumption message acknowledged')
                     cons = self.consumption.accumulated_watt_s.get(node)
-                    print('consumption ' + cons)
-                    if cons and cons > 0:
+                    if cons:
                         msg = 'cons %.2f' % cons
                         connection.consumption_msg_ack = False
                         self.send_nodes([node], msg)
