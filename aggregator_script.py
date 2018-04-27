@@ -112,7 +112,7 @@ class SerialConnection(AggregatorSerialConnection):
             # stop the node
             node_command(api, 'stop', experiment_id, nodes_list=[identifier])
             print('>> STOPPED node %s' %identifier)
-        print(line)
+        print('%s;%s' % (identifier, line))
 
 
 
