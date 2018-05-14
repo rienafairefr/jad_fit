@@ -167,6 +167,10 @@ class SerialAggregator(connections.Aggregator):
                         connection.consumption_msg_ack = False
                         self.send_nodes([node], msg + '\n')
                         print('<< SENT consumption %s %s' % (node, msg))
+                    else:
+                        print('no consumption to send')
+                else:
+                    print('previous consumption msg was not acked')
             time.sleep(10)
 
 
