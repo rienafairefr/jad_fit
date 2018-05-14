@@ -11,7 +11,7 @@ from iotlabaggregator import common, connections
 from iotlabaggregator.serial import SerialAggregator as AggregatorSerialAggregator
 from iotlabaggregator.serial import SerialConnection as AggregatorSerialConnection
 from iotlabcli import auth, rest, experiment
-from iotlabcli.experiment import wait_experiment
+from iotlabcli.experiment import wait_experiment, get_experiment
 from iotlabcli.node import node_command
 from iotlabcli.parser import common as common_parser
 from iotlabcli.helpers import get_current_experiment
@@ -36,6 +36,16 @@ logger.addHandler(file_logger)
 
 print('Wait experiment %i'%experiment_id)
 wait_experiment(api, experiment_id)
+
+exp = get_experiment(api, experiment_id)
+
+exp_nodes = exp['nodes']
+
+
+def get_identifier(host):
+    return host.split('.')[0]
+
+exp_nodes_dict = {get_identifier(hostname): hostname for hostname in exp_nodes}
 
 _print = print
 
@@ -110,7 +120,9 @@ class SerialConnection(AggregatorSerialConnection):
             print('>> ACK cons %s' % identifier)
         elif 'stop self' in line:
             # stop the node
-            node_command(api, 'stop', experiment_id, nodes_list=[identifier])
+            print(">> Trying to stop the node")
+            node_hostname = exp_nodes_dict[identifier]
+            node_command(api, 'stop', experiment_id, nodes_list=[node_hostname])
             print('>> STOPPED node %s' %identifier)
         print('%s;%s' % (identifier, line))
 
