@@ -83,25 +83,25 @@ class ConsumptionAggregator(object):
     def read_consumption_file(self):
         # schema: 0 _experiment_metadata subject:string key:string value:string
         # schema: 1 control_node_measures_consumption timestamp_s:uint32 timestamp_us:uint32 power:double voltage:double current:double
+        firstvalue = {}
 
         for node, file in self.open_files.items():
             lines = file.readlines()
             if lines:
                 print('Reading consumption data for %s...' % node)
-            else:
-                print('no new consumption data for %s...' % node)
-            for line in lines:
-                splitted = line.split('\t')
-                if len(splitted) == 8:
-                    current_time = float(splitted[3]) + float(splitted[4]) / 1000
-                    dt = current_time - self.times.get(node, current_time)
-                    power = float(splitted[5])
-                    self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
-                    self.times[node] = current_time
-
-            if lines:
+                for line in lines:
+                    splitted = line.split('\t')
+                    if len(splitted) == 8:
+                        current_time = float(splitted[3]) + float(splitted[4]) / 1000
+                        dt = current_time - self.times.get(node, current_time)
+                        power = float(splitted[5])
+                        self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
+                        self.times[node] = current_time
                 if self.times.get(node) and self.accumulated_watt_s.get(node):
                     print('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
+            else:
+                print('no new consumption data for %s...' % node)
+
 
         time.sleep(5)
         pass
