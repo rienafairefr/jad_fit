@@ -110,6 +110,7 @@ class ConsumptionAggregator(object):
 class SerialConnection(AggregatorSerialConnection):
     def __init__(self, hostname, aggregator):
         self.consumption_msg_ack = True
+        self.time_msg_ack = True
         super(SerialConnection, self).__init__(hostname, aggregator, line_handler=self.line_handler, print_lines=True)
 
     def line_handler(self, identifier, line):
@@ -118,6 +119,9 @@ class SerialConnection(AggregatorSerialConnection):
             # acknowledge the received consumption
             self.consumption_msg_ack = True
             print('>> ACK cons %s' % identifier)
+        elif 'time ACK' in line:
+            self.time_msg_ack = True
+            print('>> ACK time %s' % identifier)
         elif 'stop self' in line:
             # stop the node
             print(">> Trying to stop the node")
@@ -125,7 +129,6 @@ class SerialConnection(AggregatorSerialConnection):
             node_command(api, 'stop', experiment_id, nodes_list=[node_hostname])
             print('>> STOPPED node %s' %identifier)
         print('%s;%s' % (identifier, line))
-
 
 
 class SerialAggregator(connections.Aggregator):
@@ -140,6 +143,7 @@ class SerialAggregator(connections.Aggregator):
 
         self.consumption = ConsumptionAggregator(nodes_list)
         self.consumption_msg_ack = {}
+        self.zero_time = time.clock()
 
     @staticmethod
     def select_nodes(opts):
@@ -182,7 +186,15 @@ class SerialAggregator(connections.Aggregator):
                     else:
                         print('no consumption to send')
                 else:
-                    print('previous consumption msg was not acked')
+                    print('previous consumption msg was not ACKed')
+
+                if connection.time_msg_ack:
+                    msg = 'time %d' % (time.clock() - self.zero_time)
+                    self.send_nodes([node], msg)
+                    print('<< SENT time %s %s' % (node, msg))
+                else:
+                    print('previous time msg was not ACKed')
+
             time.sleep(10)
 
 
