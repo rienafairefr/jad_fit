@@ -6,9 +6,9 @@ import os
 import sys
 import threading
 import time
+import shlex
 
 from iotlabaggregator import common, connections
-from iotlabaggregator.serial import SerialAggregator as AggregatorSerialAggregator
 from iotlabaggregator.serial import SerialConnection as AggregatorSerialConnection
 from iotlabcli import auth, rest, experiment
 from iotlabcli.experiment import wait_experiment, get_experiment
@@ -21,63 +21,66 @@ print('current working directory: ' + os.getcwd())
 
 user, passwd = auth.get_user_credentials()
 api = rest.Api(user, passwd)
-experiment_id = get_current_experiment(api, running_only=False)
+
+logger = logging.getLogger('aggregator_script')
 
 home = os.path.expanduser('~')
 
-LOG_FMT = logging.Formatter("%(created)f;%(message)s")
-logger = logging.getLogger('aggregator_script')
-logger.setLevel(logging.INFO)
-line_logger = logging.StreamHandler(sys.stdout)
-line_logger.setFormatter(LOG_FMT)
-file_logger = logging.FileHandler(os.path.join(home, 'results', '%i.aggregator.log' % experiment_id))
-file_logger.setFormatter(LOG_FMT)
-logger.addHandler(line_logger)
-logger.addHandler(file_logger)
 
-print('Wait experiment %i'%experiment_id)
-wait_experiment(api, experiment_id)
+def setup_logger(experiment_id):
+    LOG_FMT = logging.Formatter("%(created)f;%(message)s")
+    logger.setLevel(logging.INFO)
+    line_logger = logging.StreamHandler(sys.stdout)
+    line_logger.setFormatter(LOG_FMT)
+    log_file = os.path.join(home, 'results', '%i.aggregator.log' % experiment_id)
+    file_logger = logging.FileHandler(log_file)
+    print('logging to %s' % log_file)
+    file_logger.setFormatter(LOG_FMT)
+    logger.addHandler(line_logger)
+    logger.addHandler(file_logger)
 
-exp = get_experiment(api, experiment_id)
-
-exp_nodes = exp['nodes']
 
 def get_identifier(host):
     return host.split('.')[0]
 
-exp_nodes_dict = {get_identifier(hostname): hostname for hostname in exp_nodes}
 
-_print = print
-
-def print(msg):
-    logger.info(msg)
+def get_experiment_id():
+    return get_current_experiment(api, running_only=False)
 
 
-def stop_node(node_hostname):
-    node_command(api, 'stop', experiment_id, nodes_list=[node_hostname])
+def get_nodes_dict():
+    exp = get_experiment(api, get_experiment_id())
+    exp_nodes = exp['nodes']
+    return {get_identifier(hostname): hostname for hostname in exp_nodes}
+
+
+def stop_node(node):
+    node_hostname = get_nodes_dict()[node]
+    node_command(api, 'stop', get_experiment_id(), nodes_list=[node_hostname])
     print('>> STOPPED node %s' % node_hostname)
 
 
-batteries = os.environ.get('BATTERIES', {})
-if batteries:
-    groups = batteries.split(';')
+def get_batteries(value):
+    groups = value.split(';')
     batteries = {}
     for group in groups:
         element = group.split(':')
         if len(element) == 2:
             element_nodes_list = nodes_list_from_str(element[0])
             for node in element_nodes_list:
-                batteries[node] = int(element[1])
+                batteries[get_identifier(node)] = int(element[1])
+    return batteries
 
 
 class ConsumptionAggregator(object):
     CONSUMPTION_DIR = os.path.join(home, ".iot-lab/{experiment_id}/consumption/{node}.oml")
 
-    def __init__(self, nodes_list, *args, **kwargs):
+    def __init__(self, experiment_id, nodes_list, batteries):
         self.nodes_list = nodes_list
         self.open_files = {}
         self.accumulated_watt_s = {}
         self.times = {}
+        self.batteries = batteries
         for node in nodes_list:
             consumption_node_file = self.CONSUMPTION_DIR.format(node=node, experiment_id=experiment_id)
             if os.path.exists(consumption_node_file):
@@ -103,10 +106,9 @@ class ConsumptionAggregator(object):
         firstvalue = {}
 
         for node, file in self.open_files.items():
-            node_hostname = exp_nodes_dict[node]
             lines = file.readlines()
             if lines:
-                print('got consumption data for %s, reading...' % node)
+                logger.info('got consumption data for %s, reading...' % node)
                 for line in lines:
                     splitted = line.split('\t')
                     if len(splitted) == 8:
@@ -115,13 +117,13 @@ class ConsumptionAggregator(object):
                         power = float(splitted[5])
                         self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
                         self.times[node] = current_time
-                        if batteries.get(node_hostname) and self.accumulated_watt_s[node]>batteries[node_hostname]:
-                            print('node %s has exceeded its battery' % node)
-                            stop_node(node_hostname)
+                        if self.batteries.get(node) and self.accumulated_watt_s[node] > self.batteries[node]:
+                            logger.info('node %s has exceeded its battery' % node)
+                            stop_node(node)
                 if self.times.get(node) and self.accumulated_watt_s.get(node):
-                    print('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
+                    logger.info('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
             else:
-                print('no new consumption data for %s...' % node)
+                logger.info('no new consumption data for %s...' % node)
 
 
         time.sleep(5)
@@ -139,16 +141,16 @@ class SerialConnection(AggregatorSerialConnection):
         if 'cons ACK' in line:
             # acknowledge the received consumption
             self.consumption_msg_ack = True
-            print('>> ACK cons %s' % identifier)
+            logger.info('>> ACK cons %s' % identifier)
         elif 'time ACK' in line:
             self.time_msg_ack = True
-            print('>> ACK time %s' % identifier)
+            logger.info('>> ACK time %s' % identifier)
         elif 'stop self' in line:
             # stop the node
-            print(">> Trying to stop the node")
-            stop_node(exp_nodes_dict[identifier])
+            logger.info(">> Trying to stop the node")
+            stop_node(identifier)
 
-        print('%s;%s' % (identifier, line))
+        logger.info('%s;%s' % (identifier, line))
 
 
 class SerialAggregator(connections.Aggregator):
@@ -158,10 +160,10 @@ class SerialAggregator(connections.Aggregator):
     common.add_nodes_selection_parser(parser)
     connection_class = SerialConnection
 
-    def __init__(self, nodes_list, *args, **kwargs):
+    def __init__(self, experiment_id, nodes_list, batteries, *args, **kwargs):
         super(SerialAggregator, self).__init__(nodes_list, *args, **kwargs)
 
-        self.consumption = ConsumptionAggregator(nodes_list)
+        self.consumption = ConsumptionAggregator(experiment_id, nodes_list, batteries)
         self.consumption_msg_ack = {}
         self.zero_time = time.clock()
 
@@ -202,18 +204,18 @@ class SerialAggregator(connections.Aggregator):
                         msg = 'cons %.2f' % cons
                         connection.consumption_msg_ack = False
                         self.send_nodes([node], msg + '\n')
-                        print('<< SENT consumption %s %s' % (node, msg))
+                        logger.info('<< SENT consumption %s %s' % (node, msg))
                     else:
-                        print('no consumption to send')
+                        logger.info('no consumption to send')
                 else:
-                    print('previous consumption msg was not ACKed')
+                    logger.info('previous consumption msg was not ACKed')
 
                 if connection.time_msg_ack:
                     msg = 'time %d' % (time.clock() - self.zero_time)
-                    self.send_nodes([node], msg)
-                    print('<< SENT time %s %s' % (node, msg))
+                    self.send_nodes([node], msg + '\n')
+                    logger.info('<< SENT time %s %s' % (node, msg))
                 else:
-                    print('previous time msg was not ACKed')
+                    logger.info('previous time msg was not ACKed')
 
             time.sleep(10)
 
@@ -255,13 +257,25 @@ class SerialAggregator(connections.Aggregator):
 def main(args=None):
     """ Aggregate all nodes sniffer """
     args = args or sys.argv[1:]
-    opts = SerialAggregator.parser.parse_args(args)
+
+    scriptconfig = args.pop(0)
+    with open(os.path.expanduser(scriptconfig), 'r') as _fd:
+        args.extend(shlex.split(_fd.read()))
+
+    parser = argparse.ArgumentParser(description='Custom aggregator script for sending consumption and time sync')
+    parser.add_argument('--batteries', type=get_batteries)
+    args = parser.parse_args(args)
+
+    experiment_id = get_experiment_id()
+    setup_logger(experiment_id)
+    logger.info('Wait experiment %i' % experiment_id)
+    wait_experiment(api, experiment_id)
+
     try:
-        # Parse arguments
-        nodes_list = SerialAggregator.select_nodes(opts)
+        nodes_list = list(get_nodes_dict().keys())
         # Run the aggregator
 
-        with SerialAggregator(nodes_list) as aggregator:
+        with SerialAggregator(experiment_id, nodes_list, args.batteries) as aggregator:
             aggregator.run()
 
     except (ValueError, RuntimeError) as err:

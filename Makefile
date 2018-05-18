@@ -14,7 +14,7 @@ profile:
 	iotlab-profile addm3 -n consumption -p dc -current -voltage -power -period 8244 -avg 4
 
 experiment: build
-	echo "BATTERIES=$(BATTERIES)" > conf
+	echo "--batteries $(BATTERIES)" > conf
 	iotlab-experiment submit -d $(DURATION) -l $(CLIENTS),$(CONTIKI)/udp-client.iotlab-m3,consumption \
 	-l $(SERVERS),$(CONTIKI)/udp-server.iotlab-m3 $(SITEASSOCIATION)
 	iotlab-experiment wait
