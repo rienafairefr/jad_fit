@@ -15,6 +15,7 @@ from iotlabcli.experiment import wait_experiment, get_experiment
 from iotlabcli.node import node_command
 from iotlabcli.parser import common as common_parser
 from iotlabcli.helpers import get_current_experiment
+from iotlabcli.parser.common import nodes_list_from_str
 
 print('current working directory: ' + os.getcwd())
 
@@ -41,7 +42,6 @@ exp = get_experiment(api, experiment_id)
 
 exp_nodes = exp['nodes']
 
-
 def get_identifier(host):
     return host.split('.')[0]
 
@@ -51,6 +51,23 @@ _print = print
 
 def print(msg):
     logger.info(msg)
+
+
+def stop_node(node_hostname):
+    node_command(api, 'stop', experiment_id, nodes_list=[node_hostname])
+    print('>> STOPPED node %s' % node_hostname)
+
+
+batteries = os.environ.get('BATTERIES', {})
+if batteries:
+    groups = batteries.split(';')
+    batteries = {}
+    for group in groups:
+        element = group.split(':')
+        if len(element) == 2:
+            element_nodes_list = nodes_list_from_str(element[0])
+            for node in element_nodes_list:
+                batteries[node] = int(element[1])
 
 
 class ConsumptionAggregator(object):
@@ -86,9 +103,10 @@ class ConsumptionAggregator(object):
         firstvalue = {}
 
         for node, file in self.open_files.items():
+            node_hostname = exp_nodes_dict[node]
             lines = file.readlines()
             if lines:
-                print('Reading consumption data for %s...' % node)
+                print('got consumption data for %s, reading...' % node)
                 for line in lines:
                     splitted = line.split('\t')
                     if len(splitted) == 8:
@@ -97,6 +115,9 @@ class ConsumptionAggregator(object):
                         power = float(splitted[5])
                         self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
                         self.times[node] = current_time
+                        if batteries.get(node_hostname) and self.accumulated_watt_s[node]>batteries[node_hostname]:
+                            print('node %s has exceeded its battery' % node)
+                            stop_node(node_hostname)
                 if self.times.get(node) and self.accumulated_watt_s.get(node):
                     print('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
             else:
@@ -125,9 +146,8 @@ class SerialConnection(AggregatorSerialConnection):
         elif 'stop self' in line:
             # stop the node
             print(">> Trying to stop the node")
-            node_hostname = exp_nodes_dict[identifier]
-            node_command(api, 'stop', experiment_id, nodes_list=[node_hostname])
-            print('>> STOPPED node %s' %identifier)
+            stop_node(exp_nodes_dict[identifier])
+
         print('%s;%s' % (identifier, line))
 
 
