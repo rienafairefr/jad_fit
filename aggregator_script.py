@@ -79,6 +79,7 @@ class ConsumptionAggregator(object):
         self.nodes_list = nodes_list
         self.open_files = {}
         self.accumulated_watt_s = {}
+        self.initial_value = {}
         self.times = {}
         self.batteries = batteries
         for node in nodes_list:
@@ -106,6 +107,7 @@ class ConsumptionAggregator(object):
         firstvalue = {}
 
         for node, file in self.open_files.items():
+            initial_value = self.initial_value.get(node)
             lines = file.readlines()
             if lines:
                 logger.info('got consumption data for %s, reading...' % node)
@@ -120,14 +122,15 @@ class ConsumptionAggregator(object):
                         if self.batteries.get(node) and self.accumulated_watt_s[node] > self.batteries[node]:
                             logger.info('node %s has exceeded its battery' % node)
                             stop_node(node)
+                if not initial_value:
+                    self.initial_value[node] = self.accumulated_watt_s[node]
+
                 if self.times.get(node) and self.accumulated_watt_s.get(node):
                     logger.info('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
             else:
                 logger.info('no new consumption data for %s...' % node)
 
-
         time.sleep(5)
-        pass
 
 
 class SerialConnection(AggregatorSerialConnection):
