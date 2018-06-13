@@ -269,6 +269,8 @@ def main(args=None):
     with open(os.path.expanduser(scriptconfig), 'r') as _fd:
         args.extend(shlex.split(_fd.read()))
 
+    logger.info('args %s' % args)
+
     parser = argparse.ArgumentParser(description='Custom aggregator script for sending consumption and time sync')
     parser.add_argument('--batteries', type=get_batteries)
     args = parser.parse_args(args)
