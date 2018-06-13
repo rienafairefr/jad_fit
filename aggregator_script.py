@@ -212,7 +212,7 @@ class SerialAggregator(connections.Aggregator):
                     logger.info('previous consumption msg was not ACKed')
 
                 if connection.time_msg_ack:
-                    msg = 'time %d' % (time.clock() - self.zero_time)
+                    msg = 'time %f' % (time.clock() - self.zero_time)
                     self.send_nodes([node], msg + '\n')
                     logger.info('<< SENT time %s %s' % (node, msg))
                 else:
