@@ -205,7 +205,10 @@ class SerialAggregator(connections.Aggregator):
                     cons = self.consumption.accumulated_watt_s.get(node)
                     battery = self.consumption.batteries.get(node)
                     if cons:
-                        msg = 'cons %.2f %.1f' % (cons, 100 * cons/battery)
+                        if battery:
+                            msg = 'cons %.2f %.1f' % (cons, 100 * cons/battery)
+                        else:
+                            msg = 'cons %.2f ---' % cons
                         connection.consumption_msg_ack = False
                         self.send_nodes([node], msg + '\n')
                         logger.info('<< SENT consumption %s %s' % (node, msg))
