@@ -3,9 +3,8 @@ SITE?=lille
 CLIENTS?=$(SITE),m3,175-179
 SERVERS?=$(SITE),m3,180
 DURATION?=60
-
 SITEASSOCIATION?=--site-association $(SITE),script=aggregator_script.py,scriptconfig=conf
-BATTERIES?=$(SITE),m3,145-149:10000;$(SITE),m3,150:5000
+BATTERIES?=$(SITE),m3,175-178:10000;$(SITE),m3,179:5000
 
 build:
 	make -C $(CONTIKI)
