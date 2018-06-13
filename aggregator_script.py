@@ -102,35 +102,35 @@ class ConsumptionAggregator(object):
             exit(0)
 
     def read_consumption_file(self):
+        for node, file in self.open_files.items():
+            self.get_send_cons(file, node)
+        time.sleep(5)
+
+    def get_send_cons(self, file, node):
         # schema: 0 _experiment_metadata subject:string key:string value:string
         # schema: 1 control_node_measures_consumption timestamp_s:uint32 timestamp_us:uint32 power:double voltage:double current:double
-        firstvalue = {}
+        initial_value = self.initial_value.get(node)
+        lines = file.readlines()
+        if lines:
+            logger.info('got consumption data for %s, reading...' % node)
+            for line in lines:
+                splitted = line.split('\t')
+                if len(splitted) == 8:
+                    current_time = float(splitted[3]) + float(splitted[4]) / 1e6
+                    dt = current_time - self.times.get(node, current_time)
+                    power = float(splitted[5])
+                    self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
+                    self.times[node] = current_time
+                    if self.batteries.get(node) and self.accumulated_watt_s[node] > self.batteries[node]:
+                        logger.info('node %s has exceeded its battery' % node)
+                        stop_node(node)
+            if not initial_value:
+                self.initial_value[node] = self.accumulated_watt_s[node]
 
-        for node, file in self.open_files.items():
-            initial_value = self.initial_value.get(node)
-            lines = file.readlines()
-            if lines:
-                logger.info('got consumption data for %s, reading...' % node)
-                for line in lines:
-                    splitted = line.split('\t')
-                    if len(splitted) == 8:
-                        current_time = float(splitted[3]) + float(splitted[4]) / 1000
-                        dt = current_time - self.times.get(node, current_time)
-                        power = float(splitted[5])
-                        self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
-                        self.times[node] = current_time
-                        if self.batteries.get(node) and self.accumulated_watt_s[node] > self.batteries[node]:
-                            logger.info('node %s has exceeded its battery' % node)
-                            stop_node(node)
-                if not initial_value:
-                    self.initial_value[node] = self.accumulated_watt_s[node]
-
-                if self.times.get(node) and self.accumulated_watt_s.get(node):
-                    logger.info('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
-            else:
-                logger.info('no new consumption data for %s...' % node)
-
-        time.sleep(5)
+            if self.times.get(node) and self.accumulated_watt_s.get(node):
+                logger.info('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
+        else:
+            logger.info('no new consumption data for %s...' % node)
 
 
 class SerialConnection(AggregatorSerialConnection):

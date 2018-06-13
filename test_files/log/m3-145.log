@@ -1,0 +1,13 @@
+2018-06-13 11:52:42,684 :: INFO :: Start experiment: berthome-121632
+2018-06-13 11:52:42,687 :: INFO :: Control node : Starting of control node serial interface
+2018-06-13 11:52:42,690 :: INFO :: Control node : reset
+2018-06-13 11:52:42,693 :: INFO :: Reset Control Node
+2018-06-13 11:52:45,787 :: INFO :: Control node : start power of open node
+2018-06-13 11:52:45,844 :: INFO :: Node M3 : Setup of m3 node
+2018-06-13 11:52:45,861 :: INFO :: Node M3 : flash of m3 node
+2018-06-13 11:52:45,875 :: INFO :: Flash firmware on M3: /tmp/tmpyDIz_f--udp-client.iotlab-m3
+2018-06-13 11:52:53,203 :: INFO :: Control node : Start experiment
+2018-06-13 11:52:53,259 :: INFO :: Control Node set time delay: 1404 us
+2018-06-13 11:52:53,284 :: INFO :: Control node : profile configuration
+2018-06-13 11:52:53,290 :: INFO :: Configure profile on Control Node
+2018-06-13 11:52:53,366 :: INFO :: Start experiment succeeded
