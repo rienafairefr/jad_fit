@@ -56,7 +56,10 @@ def get_nodes_dict():
 
 def stop_node(node):
     node_hostname = get_nodes_dict()[node]
-    node_command(api, 'stop', get_experiment_id(), nodes_list=[node_hostname])
+    print('>> trying to stop node %s through the API' % node_hostname)
+    experiment_id = get_experiment_id()
+    print('>> experiment_id %i' % experiment_id)
+    print('API command %s' % node_command(api, 'stop', experiment_id, nodes_list=[node_hostname]))
     print('>> STOPPED node %s' % node_hostname)
 
 
@@ -204,6 +207,7 @@ class SerialAggregator(connections.Aggregator):
             # else: Only hitting 'enter' to get spacing
             for node in list(self.keys()):
                 if node not in self.consumption.nodes_list:
+                    print('remove %s from nodes list' % node)
                     del self[node]
 
             for node, connection in self.items():
@@ -219,9 +223,9 @@ class SerialAggregator(connections.Aggregator):
                         self.send_nodes([node], msg + '\n')
                         logger.info('<< SENT consumption %s %s' % (node, msg))
                     else:
-                        logger.info('no consumption to send')
+                        logger.info('%s no consumption to send' % node)
                 else:
-                    logger.info('previous consumption msg was not ACKed')
+                    logger.info('%s previous consumption msg was not ACKed' % node)
 
                 if connection.time_msg_ack:
                     msg = 'time %f' % (time.clock() - self.zero_time)
