@@ -26,6 +26,8 @@ logger = logging.getLogger('aggregator_script')
 
 home = os.path.expanduser('~')
 
+RATIO_DEAD = 0.2
+
 
 def setup_logger(experiment_id):
     LOG_FMT = logging.Formatter("%(created)f;%(message)s")
@@ -75,6 +77,10 @@ def get_batteries(value):
     return batteries
 
 
+class EndOfExperiment(Exception):
+    pass
+
+
 class ConsumptionAggregator(object):
     CONSUMPTION_DIR = os.path.join(home, ".iot-lab/{experiment_id}/consumption/{node}.oml")
 
@@ -85,6 +91,8 @@ class ConsumptionAggregator(object):
         self.initial_value = {}
         self.times = {}
         self.batteries = batteries
+        self.total_dead = 0
+        self.total_exp_nodes = len(nodes_list)
         for node in self.nodes_list:
             consumption_node_file = self.CONSUMPTION_DIR.format(node=node, experiment_id=experiment_id)
             if os.path.exists(consumption_node_file):
@@ -101,8 +109,11 @@ class ConsumptionAggregator(object):
         try:
             while True:
                 self.read_consumption_file()
+        except EndOfExperiment:
+            logger.info('End of Experiment baby!')
         except (KeyboardInterrupt, EOFError):
-            exit(0)
+            logger.info('Keyboard or EOFError')
+        exit(0)
 
     def read_consumption_file(self):
         for node in list(self.nodes_list):
@@ -128,6 +139,12 @@ class ConsumptionAggregator(object):
                                 self.nodes_list.remove(node)
                                 file.close()
                                 del self.open_files[node]
+                                self.total_dead += 1
+                                logger.info('total dead %i' % self.total_dead)
+                                if self.total_exp_nodes > 0:
+                                    if self.total_dead/self.total_exp_nodes > RATIO_DEAD:
+                                        raise EndOfExperiment()
+
                 if not initial_value:
                     self.initial_value[node] = self.accumulated_watt_s[node]
 
