@@ -11,7 +11,7 @@ import shlex
 from iotlabaggregator import common, connections
 from iotlabaggregator.serial import SerialConnection as AggregatorSerialConnection
 from iotlabcli import auth, rest, experiment
-from iotlabcli.experiment import wait_experiment, get_experiment
+from iotlabcli.experiment import wait_experiment, get_experiment, stop_experiment
 from iotlabcli.node import node_command
 from iotlabcli.parser import common as common_parser
 from iotlabcli.helpers import get_current_experiment
@@ -143,6 +143,7 @@ class ConsumptionAggregator(object):
                                 logger.info('total dead %i' % self.total_dead)
                                 if self.total_exp_nodes > 0:
                                     if self.total_dead/self.total_exp_nodes > RATIO_DEAD:
+                                        stop_experiment(api, get_experiment_id())
                                         raise EndOfExperiment()
 
                 if not initial_value:
