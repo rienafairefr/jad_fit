@@ -173,7 +173,7 @@ class SerialAggregator(connections.Aggregator):
 
         self.consumption = ConsumptionAggregator(experiment_id, nodes_list, batteries)
         self.consumption_msg_ack = {}
-        self.zero_time = time.clock()
+        self.zero_time = time.time()
 
     @staticmethod
     def select_nodes(opts):
@@ -228,7 +228,7 @@ class SerialAggregator(connections.Aggregator):
                     logger.info('%s previous consumption msg was not ACKed' % node)
 
                 if connection.time_msg_ack:
-                    msg = 'time %f' % (time.clock() - self.zero_time)
+                    msg = 'time %f' % (time.time() - self.zero_time)
                     self.send_nodes([node], msg + '\n')
                     logger.info('<< SENT time %s %s' % (node, msg))
                 else:
