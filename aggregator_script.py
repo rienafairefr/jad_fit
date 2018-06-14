@@ -82,7 +82,7 @@ class ConsumptionAggregator(object):
         self.initial_value = {}
         self.times = {}
         self.batteries = batteries
-        for node in nodes_list:
+        for node in self.nodes_list:
             consumption_node_file = self.CONSUMPTION_DIR.format(node=node, experiment_id=experiment_id)
             if os.path.exists(consumption_node_file):
                 self.open_files[node] = open(consumption_node_file, 'r')
@@ -102,35 +102,37 @@ class ConsumptionAggregator(object):
             exit(0)
 
     def read_consumption_file(self):
-        for node, file in self.open_files.items():
-            self.get_send_cons(file, node)
+        for node in list(self.nodes_list):
+            file = self.open_files[node]
+            # schema: 0 _experiment_metadata subject:string key:string value:string
+            # schema: 1 control_node_measures_consumption timestamp_s:uint32 timestamp_us:uint32 power:double voltage:double current:double
+            initial_value = self.initial_value.get(node)
+            lines = file.readlines()
+            if lines:
+                logger.info('got consumption data for %s, reading...' % node)
+                for line in lines:
+                    splitted = line.split('\t')
+                    if len(splitted) == 8:
+                        current_time = float(splitted[3]) + float(splitted[4]) / 1e6
+                        dt = current_time - self.times.get(node, current_time)
+                        power = float(splitted[5])
+                        self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
+                        self.times[node] = current_time
+                        if self.batteries.get(node) and self.accumulated_watt_s[node] > self.batteries[node]:
+                            logger.info('node %s has exceeded its battery' % node)
+                            stop_node(node)
+                            self.nodes_list.remove(node)
+                            file.close()
+                            del self.open_files[node]
+                if not initial_value:
+                    self.initial_value[node] = self.accumulated_watt_s[node]
+
+                if self.times.get(node) and self.accumulated_watt_s.get(node):
+                    logger.info('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
+            else:
+                logger.info('no new consumption data for %s...' % node)
+
         time.sleep(5)
-
-    def get_send_cons(self, file, node):
-        # schema: 0 _experiment_metadata subject:string key:string value:string
-        # schema: 1 control_node_measures_consumption timestamp_s:uint32 timestamp_us:uint32 power:double voltage:double current:double
-        initial_value = self.initial_value.get(node)
-        lines = file.readlines()
-        if lines:
-            logger.info('got consumption data for %s, reading...' % node)
-            for line in lines:
-                splitted = line.split('\t')
-                if len(splitted) == 8:
-                    current_time = float(splitted[3]) + float(splitted[4]) / 1e6
-                    dt = current_time - self.times.get(node, current_time)
-                    power = float(splitted[5])
-                    self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
-                    self.times[node] = current_time
-                    if self.batteries.get(node) and self.accumulated_watt_s[node] > self.batteries[node]:
-                        logger.info('node %s has exceeded its battery' % node)
-                        stop_node(node)
-            if not initial_value:
-                self.initial_value[node] = self.accumulated_watt_s[node]
-
-            if self.times.get(node) and self.accumulated_watt_s.get(node):
-                logger.info('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
-        else:
-            logger.info('no new consumption data for %s...' % node)
 
 
 class SerialConnection(AggregatorSerialConnection):
@@ -200,6 +202,10 @@ class SerialAggregator(connections.Aggregator):
             # if (None, '') != (nodes, message):
             #    self.send_nodes(nodes, message + '\n')
             # else: Only hitting 'enter' to get spacing
+            for node in list(self.keys()):
+                if node not in self.consumption.nodes_list:
+                    del self[node]
+
             for node, connection in self.items():
                 if connection.consumption_msg_ack:
                     cons = self.consumption.accumulated_watt_s.get(node)
