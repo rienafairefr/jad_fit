@@ -56,11 +56,11 @@ def get_nodes_dict():
 
 def stop_node(node):
     node_hostname = get_nodes_dict()[node]
-    print('>> trying to stop node %s through the API' % node_hostname)
+    logger.info('>> trying to stop node %s through the API' % node_hostname)
     experiment_id = get_experiment_id()
-    print('>> experiment_id %i' % experiment_id)
-    print('API command %s' % node_command(api, 'stop', experiment_id, nodes_list=[node_hostname]))
-    print('>> STOPPED node %s' % node_hostname)
+    logger.info('>> experiment_id %i' % experiment_id)
+    logger.info('API command %s' % node_command(api, 'stop', experiment_id, nodes_list=[node_hostname]))
+    logger.info('>> STOPPED node %s' % node_hostname)
 
 
 def get_batteries(value):
@@ -122,11 +122,12 @@ class ConsumptionAggregator(object):
                         self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
                         self.times[node] = current_time
                         if self.batteries.get(node) and self.accumulated_watt_s[node] > self.batteries[node]:
-                            logger.info('node %s has exceeded its battery' % node)
-                            stop_node(node)
-                            self.nodes_list.remove(node)
-                            file.close()
-                            del self.open_files[node]
+                            if node in self.nodes_list:
+                                logger.info('node %s has exceeded its battery' % node)
+                                stop_node(node)
+                                self.nodes_list.remove(node)
+                                file.close()
+                                del self.open_files[node]
                 if not initial_value:
                     self.initial_value[node] = self.accumulated_watt_s[node]
 
@@ -207,7 +208,7 @@ class SerialAggregator(connections.Aggregator):
             # else: Only hitting 'enter' to get spacing
             for node in list(self.keys()):
                 if node not in self.consumption.nodes_list:
-                    print('remove %s from nodes list' % node)
+                    logger.info('remove %s from nodes list' % node)
                     del self[node]
 
             for node, connection in self.items():
