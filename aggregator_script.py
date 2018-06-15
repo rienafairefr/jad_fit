@@ -117,6 +117,8 @@ class ConsumptionAggregator(object):
 
     def read_consumption_file(self):
         for node in list(self.nodes_list):
+            if node not in self.open_files:
+                continue
             file = self.open_files[node]
             # schema: 0 _experiment_metadata subject:string key:string value:string
             # schema: 1 control_node_measures_consumption timestamp_s:uint32 timestamp_us:uint32 power:double voltage:double current:double
@@ -140,8 +142,10 @@ class ConsumptionAggregator(object):
                                 file.close()
                                 del self.open_files[node]
                                 self.total_dead += 1
-                                logger.info('total dead %i' % self.total_dead)
+                                logger.info('total dead %f' % self.total_dead)
                                 if self.total_exp_nodes > 0:
+                                    logger.info('total_exp_nodes %f' % self.total_exp_nodes)
+                                    logger.info('total_dead/total_exp_nodes %f' % (self.total_dead/self.total_exp_nodes))
                                     if self.total_dead/self.total_exp_nodes > RATIO_DEAD:
                                         stop_experiment(api, get_experiment_id())
                                         raise EndOfExperiment()
