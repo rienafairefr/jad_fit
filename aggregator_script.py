@@ -144,9 +144,10 @@ class ConsumptionAggregator(object):
                                 self.total_dead += 1
                                 logger.info('total dead %f' % self.total_dead)
                                 if self.total_exp_nodes > 0:
+                                    ratio_dead = float(self.total_dead)/self.total_exp_nodes
                                     logger.info('total_exp_nodes %f' % self.total_exp_nodes)
-                                    logger.info('total_dead/total_exp_nodes %f' % (self.total_dead/self.total_exp_nodes))
-                                    if self.total_dead/self.total_exp_nodes > RATIO_DEAD:
+                                    logger.info('ratio_dead %f' % ratio_dead)
+                                    if ratio_dead > RATIO_DEAD:
                                         stop_experiment(api, get_experiment_id())
                                         raise EndOfExperiment()
 
