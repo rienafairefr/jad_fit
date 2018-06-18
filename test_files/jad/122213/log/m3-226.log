@@ -1,0 +1,28 @@
+2018-06-18 15:06:47,087 :: INFO :: Start experiment: nassar-122213
+2018-06-18 15:06:47,091 :: INFO :: Control node : Starting of control node serial interface
+2018-06-18 15:06:47,095 :: INFO :: Control node : reset
+2018-06-18 15:06:47,097 :: INFO :: Reset Control Node
+2018-06-18 15:06:50,148 :: INFO :: Control node : start power of open node
+2018-06-18 15:06:50,208 :: INFO :: Node M3 : Setup of m3 node
+2018-06-18 15:06:50,225 :: INFO :: Node M3 : flash of m3 node
+2018-06-18 15:06:50,239 :: INFO :: Flash firmware on M3: /tmp/tmpx93SGq--udp-client.iotlab-m3
+2018-06-18 15:06:58,670 :: INFO :: Control node : Start experiment
+2018-06-18 15:06:58,748 :: INFO :: Control Node set time delay: 1892 us
+2018-06-18 15:06:58,782 :: INFO :: Control node : profile configuration
+2018-06-18 15:06:58,789 :: INFO :: Configure profile on Control Node
+2018-06-18 15:06:58,867 :: INFO :: Start experiment succeeded
+2018-06-18 15:55:39,213 :: INFO :: Gateway Manager : Stop experiment
+2018-06-18 15:55:39,222 :: INFO :: Stop experiment
+2018-06-18 15:55:39,230 :: INFO :: Control node : stop of the experiment
+2018-06-18 15:55:39,240 :: INFO :: Control node : profile configuration
+2018-06-18 15:55:39,247 :: INFO :: Configure profile on Control Node
+2018-06-18 15:55:39,319 :: INFO :: Control node : start power of open node
+2018-06-18 15:55:39,360 :: INFO :: Node M3 : teardown of m3 node
+2018-06-18 15:55:39,368 :: INFO :: M3 Node debugger stop
+2018-06-18 15:55:39,513 :: INFO :: Node M3 : flash of m3 node
+2018-06-18 15:55:39,517 :: INFO :: Flash firmware on M3: /usr/lib/python2.7/site-packages/gateway_code/static/m3_idle.elf
+2018-06-18 15:55:42,862 :: INFO :: Control node : Stop control node serial interface
+2018-06-18 15:55:42,873 :: INFO :: Control node : stop power of open node
+2018-06-18 15:55:42,951 :: INFO :: Control node : reset
+2018-06-18 15:55:42,958 :: INFO :: Reset Control Node
+2018-06-18 15:55:46,012 :: INFO :: Stop experiment succeeded

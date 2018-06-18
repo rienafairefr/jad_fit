@@ -1,0 +1,24 @@
+sys:1: DeprecationWarning: admin-cli command is deprecated and will be removed in next release. Please [1muse iotlab-admin instead[0m.
+
+
+Waiting that experiment 122213/nassar gets in state Running
+"Running"
+Experiment '122213/nassar' is Running
+Running script: 'aggregator_script.py'
+Using script config: 'conf'
+1529327235.365637;Aggregator started
+Exception in thread Thread-2:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/threading.py", line 810, in __bootstrap_inner
+    self.run()
+  File "/usr/lib/python2.7/threading.py", line 763, in run
+    self.__target(*self.__args, **self.__kwargs)
+  File "/var/run/script_tools/script/122213", line 111, in _loop
+    self.read_consumption_file()
+  File "/var/run/script_tools/script/122213", line 132, in read_consumption_file
+    current_time = float(splitted[3]) + float(splitted[4]) / 1e6
+ValueError: invalid literal for float(): 37406
+
+Got kill signal, sending SIGTERM to script and waiting for return...
+Script returned: -15
+
