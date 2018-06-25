@@ -85,13 +85,14 @@ class EndOfExperiment(Exception):
 class ConsumptionAggregator(object):
     CONSUMPTION_DIR = os.path.join(home, ".iot-lab/{experiment_id}/consumption/{node}.oml")
 
-    def __init__(self, experiment_id, nodes_list, batteries):
+    def __init__(self, experiment_id, nodes_list, batteries, baseline):
         self.nodes_list = nodes_list
         self.open_files = {}
         self.accumulated_watt_s = {}
         self.initial_value = {}
         self.times = {}
         self.batteries = batteries
+        self.baseline = baseline
         self.total_dead = 0
         self.total_exp_nodes = len(nodes_list)
         for node in self.nodes_list:
@@ -138,7 +139,7 @@ class ConsumptionAggregator(object):
                     current_time = float(splitted[3].strip(' \0')) + \
                                    float(splitted[4].strip(' \0')) / 1e6
                     dt = current_time - self.times.get(node, current_time)
-                    power = float(splitted[5].strip(' \0'))
+                    power = float(splitted[5].strip(' \0')) - self.baseline
                     self.accumulated_watt_s[node] = self.accumulated_watt_s[node] + dt * power
                     self.times[node] = current_time
                     if self.batteries.get(node) and self.accumulated_watt_s[node] > self.batteries[node]:
@@ -197,10 +198,10 @@ class SerialAggregator(connections.Aggregator):
     common.add_nodes_selection_parser(parser)
     connection_class = SerialConnection
 
-    def __init__(self, experiment_id, nodes_list, batteries, *args, **kwargs):
+    def __init__(self, experiment_id, nodes_list, batteries, baseline, *args, **kwargs):
         super(SerialAggregator, self).__init__(nodes_list, *args, **kwargs)
 
-        self.consumption = ConsumptionAggregator(experiment_id, nodes_list, batteries)
+        self.consumption = ConsumptionAggregator(experiment_id, nodes_list, batteries, baseline)
         self.consumption_msg_ack = {}
         self.zero_time = time.time()
 
@@ -311,6 +312,7 @@ def main(args=None):
 
     parser = argparse.ArgumentParser(description='Custom aggregator script for sending consumption and time sync')
     parser.add_argument('--batteries', type=get_batteries)
+    parser.add_argument('--baseline', type=float)
     args = parser.parse_args(args)
 
     experiment_id = get_experiment_id()
@@ -322,7 +324,7 @@ def main(args=None):
         nodes_list = list(get_nodes_dict().keys())
         # Run the aggregator
 
-        with SerialAggregator(experiment_id, nodes_list, args.batteries) as aggregator:
+        with SerialAggregator(experiment_id, nodes_list, args.batteries, args.baseline) as aggregator:
             aggregator.run()
 
     except (ValueError, RuntimeError) as err:

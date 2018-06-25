@@ -5,6 +5,7 @@ SERVERS?=$(SITE),m3,180
 DURATION?=60
 SITEASSOCIATION?=--site-association $(SITE),script=aggregator_script.py,scriptconfig=conf
 BATTERIES?=$(SITE),m3,175-178:10000;$(SITE),m3,179:5000
+POWER_BASELINE?=0.14
 
 build:
 	make -C $(CONTIKI)
@@ -13,7 +14,7 @@ profile:
 	iotlab-profile addm3 -n consumption -p dc -current -voltage -power -period 8244 -avg 4
 
 conf: build
-	echo "--batteries $(BATTERIES)" > conf
+	echo "--batteries $(BATTERIES) --baseline $(POWER_BASELINE)" > conf
 
 experiment: conf
 	iotlab-experiment submit -d $(DURATION) -l $(CLIENTS),$(CONTIKI)/udp-client.iotlab-m3,consumption \
