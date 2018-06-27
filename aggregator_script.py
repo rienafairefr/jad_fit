@@ -156,6 +156,11 @@ class ConsumptionAggregator(object):
                                 logger.info('total_exp_nodes %f' % self.total_exp_nodes)
                                 logger.info('ratio_dead %f' % ratio_dead)
                                 if ratio_dead > RATIO_DEAD:
+                                    for _node in self.accumulated_watt_s:
+                                        logger.info('consumption/battery in node %s: %f %f'% (_node,
+                                                                                              self.accumulated_watt_s.get(_node),
+                                                                               self.batteries.get(_node)))
+
                                     stop_experiment(api, get_experiment_id())
                                     raise EndOfExperiment()
 
@@ -165,7 +170,8 @@ class ConsumptionAggregator(object):
             if self.times.get(node) and self.accumulated_watt_s.get(node):
                 logger.info('%u : %s : %g' % (self.times[node], node, self.accumulated_watt_s[node]))
         else:
-            logger.info('no new consumption data for %s...' % node)
+            #logger.info('no new consumption data for %s...' % node)
+            pass
 
 
 class SerialConnection(AggregatorSerialConnection):
