@@ -2,6 +2,7 @@ CONTIKI?=../contiki/examples/ipv6/rpl-udp-multi/
 SITE?=lille
 CLIENTS?=$(SITE),m3,175-179
 SERVERS?=$(SITE),m3,180
+NULLS=$(SITE),m3,181-240
 DURATION?=60
 SITEASSOCIATION?=--site-association $(SITE),script=aggregator_script.py,scriptconfig=conf
 BATTERIES?=$(SITE),m3,175-178:10000;$(SITE),m3,179:5000
@@ -17,7 +18,7 @@ conf: build
 	echo "--batteries $(BATTERIES) --baseline $(POWER_BASELINE)" > conf
 
 experiment: conf
-	iotlab-experiment submit -d $(DURATION) -l $(CLIENTS),$(CONTIKI)/udp-client.iotlab-m3,consumption \
+	iotlab-experiment submit -d $(DURATION) -l $(NULLS) -l $(CLIENTS),$(CONTIKI)/udp-client.iotlab-m3,consumption \
 	-l $(SERVERS),$(CONTIKI)/udp-server.iotlab-m3 $(SITEASSOCIATION)
 	iotlab-experiment wait
 
